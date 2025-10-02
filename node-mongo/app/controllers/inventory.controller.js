@@ -1,65 +1,99 @@
-const Inventory = require('../models/inventory.model');
+const mongoose = require('mongoose');
+const Inventory = mongoose.model('Inventory');
 
 // Create new inventory item
-exports.createInventory = async (req, res) => {
-    try {
-        const inventory = new Inventory(req.body);
-        await inventory.save();
-        res.status(201).json(inventory);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+exports.createInventory = (req, res) => {
+    const inventory = new Inventory({
+        prodname: req.body.prodname,
+        qty: req.body.qty,
+        price: req.body.price,
+        status: req.body.status,
+    });
+
+    // Save a Inventory in the MongoDB
+    inventory.save().then(data => {
+        res.status(200).json(data);
+    }).catch(err => {
+        res.status(500).json({
+            message: "Fail!",
+            error: err.message
+        });
+    });
 };
 
 // Get inventory item by ID
-exports.getInventory = async (req, res) => {
-    try {
-        const inventory = await Inventory.findById(req.params.id);
-        if (!inventory) {
-            return res.status(404).json({ error: 'Inventory item not found' });
-        }
-        res.json(inventory);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+exports.getInventory = (req, res) => {
+    Inventory.findById(req.params.id).select('-_v')
+        .then(inventory => {
+            res.status(200).json(inventory);
+        }).catch(err => {
+            if(err.kind === 'ObjectId') {
+                return res.status(404).send({
+                    message: "Inventory not found with id " + req.params.id,
+                    error: err
+                });
+            }
+            return res.status(500).send({
+                message: "Error retrieving Inventory with id " + req.params.id,
+                error: err
+            });
+        });
 };
 
 // Get all inventory items
-exports.inventories = async (req, res) => {
-    try {
-        const inventory = await Inventory.find();
-        res.json(inventory);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+exports.inventories = (req, res) => {
+    Inventory.find().select('-_v').then(inventoryInfos => {
+        res.status(200).json(inventoryInfos);
+    }).catch(error => {
+        // log on console
+        console.log(error);
+
+        res.status(500).json({
+            message: "Error!",
+            error: error
+        });
+    });
 };
 
-// Update inventory item
-exports.updateInventory = async (req, res) => {
-    try {
-        const inventory = await Inventory.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true, runValidators: true }
-        );
-        if (!inventory) {
-            return res.status(404).json({ error: 'Inventory item not found' });
-        }
-        res.json(inventory);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+exports.deleteInventory = (req, res) => {
+    Inventory.findByIdAndRemove(req.params.id).select('-_v-_id')
+        .then(inventory => {
+            if(!inventory) {
+                res.status(404).json({
+                    message: "No inventory found with id = " + req.params.id,
+                    error: "404",
+                });
+            } else {
+                res.status(200).json({});
+            }
+        }).catch(err => {
+            return res.status(500).send({
+                message: "Error -> Can't delete inventory with id = " + req.params.id,
+                error: err.message
+            });
+        });
 };
 
-// Delete inventory item
-exports.deleteInventory = async (req, res) => {
-    try {
-        const inventory = await Inventory.findByIdAndDelete(req.params.id);
-        if (!inventory) {
-            return res.status(404).json({ error: 'Inventory item not found' });
-        }
-        res.json({ message: 'Inventory item deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+exports.updateInventory = (req, res) => {
+    // Find inventory and update it
+    Inventory.findByIdAndUpdate(req.body._id, {
+        prodname: req.body.prodname,
+        qty: req.body.qty,
+        price: req.body.price,
+        status: req.body.status,
+    }, {new: false}).select('-_v')
+        .then(inventory => {
+            if(!inventory) {
+                return res.status(404).send({
+                    message: "Error -> Can't update an inventory with id = " + req.params.id,
+                    error: "Not Found!"
+                });
+            }
+            res.status(200).json(inventory);
+        }).catch(err => {
+            return res.status(500).send({
+                message: "Error -> Can't update a inventory with id = " + req.params.id,
+                error: err.message
+            });
+        });
 };
