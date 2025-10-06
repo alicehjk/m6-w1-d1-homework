@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   Button,
   Container,
@@ -21,16 +21,19 @@ class InventoryForm extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      inventory: this.defaultItem
+      inventory: this.defaultItem,
+      isLoading: true
     };
   }
 
   async componentDidMount() {
-    const { id } = this.props.match.params;
+    const { id } = this.props.params;
     if (id && id !== 'new') {
       const response = await fetch(`/api/inventory/${id}`);
       const data = await response.json();
-      this.setState({ inventory: data });
+      this.setState({ inventory: data, isLoading: false });
+    } else {
+      this.setState({ isLoading: false });
     }
   }
 
@@ -51,7 +54,7 @@ class InventoryForm extends Component {
       body: JSON.stringify(inventory)
     });
 
-    this.props.history.push('/inventories');
+    this.props.navigate('/inventories');
   };
 
   renderTitle() {
@@ -63,7 +66,11 @@ class InventoryForm extends Component {
   }
 
   render() {
-    const { inventory } = this.state;
+    const { inventory, isLoading } = this.state;
+
+    if (isLoading) {
+      return <p>Loading...</p>;
+    }
 
     return (
       <div>
@@ -139,4 +146,11 @@ class InventoryForm extends Component {
   }
 }
 
-export default InventoryForm;
+// Wrapper component to use hooks with class component
+function InventoryEdit(props) {
+  const params = useParams();
+  const navigate = useNavigate();
+  return <InventoryForm {...props} params={params} navigate={navigate} />;
+}
+
+export default InventoryEdit;
