@@ -1,9 +1,18 @@
 module.exports = function(app) {
     const inventories = require('../controllers/inventory.controller.js');
 
-    app.post('/api/inventory', inventories.createInventory);
-    app.get('/api/inventory/:id', inventories.getInventory);
-    app.get('/api/inventories', inventories.inventories);
+    // Create new inventory
+    app.post('/api/inventory', inventories.addInventory);
+
+    // Get inventory by ID
+    app.get('/api/inventory/:id', inventories.getInventoryById);
+
+    // Get all inventories
+    app.get('/api/inventories', inventories.listInventories);
+
+    // Update inventory by ID
     app.put('/api/inventory/:id', inventories.updateInventory);
-    app.delete('/api/inventory/:id', inventories.deleteInventory);
+
+    // Delete inventory by ID
+    app.delete('/api/inventory/:id', inventories.removeInventory);
 }
